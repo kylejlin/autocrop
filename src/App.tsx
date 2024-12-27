@@ -339,7 +339,56 @@ function cropImagesAndAddPadding(
   imageFiles: readonly ImageFile[],
   transparentPadding: number
 ): readonly ImageFile[] {
-  throw new Error("Not implemented.");
+  return imageFiles.map((f) => cropImageAndAddPadding(f, transparentPadding));
+}
+
+function cropImageAndAddPadding(
+  imageFile: ImageFile,
+  transparentPadding: number
+): ImageFile {
+  const {
+    minVisiblePixelX,
+    maxVisiblePixelX,
+    minVisiblePixelY,
+    maxVisiblePixelY,
+  } = imageFile.cropBounds;
+  const unpaddedWidth = maxVisiblePixelX - minVisiblePixelX + 1;
+  const unpaddedHeight = maxVisiblePixelY - minVisiblePixelY + 1;
+  const unpaddedData = imageFile.data;
+
+  const paddedWidth = unpaddedWidth + 2 * transparentPadding;
+  const paddedHeight = unpaddedHeight + 2 * transparentPadding;
+  const paddedData = new Uint8ClampedArray(paddedWidth * paddedHeight * 4);
+
+  for (let cropRectX = 0; cropRectX < unpaddedWidth; ++cropRectX) {
+    for (let cropRectY = 0; cropRectY < unpaddedHeight; ++cropRectY) {
+      const sourceX = minVisiblePixelX + cropRectX;
+      const sourceY = minVisiblePixelY + cropRectY;
+      const sourceIndex = (sourceY * imageFile.width + sourceX) * 4;
+
+      const destX = transparentPadding + cropRectX;
+      const destY = transparentPadding + cropRectY;
+      const destIndex = (destY * paddedWidth + destX) * 4;
+
+      paddedData[destIndex] = unpaddedData[sourceIndex];
+      paddedData[destIndex + 1] = unpaddedData[sourceIndex + 1];
+      paddedData[destIndex + 2] = unpaddedData[sourceIndex + 2];
+      paddedData[destIndex + 3] = unpaddedData[sourceIndex + 3];
+    }
+  }
+
+  return {
+    name: imageFile.name,
+    width: paddedWidth,
+    height: paddedHeight,
+    data: paddedData,
+    cropBounds: {
+      minVisiblePixelX: transparentPadding,
+      maxVisiblePixelX: transparentPadding + unpaddedWidth - 1,
+      minVisiblePixelY: transparentPadding,
+      maxVisiblePixelY: transparentPadding + unpaddedHeight - 1,
+    },
+  };
 }
 
 function zipImageFiles(imageFiles: readonly ImageFile[]): Promise<JSZip> {
