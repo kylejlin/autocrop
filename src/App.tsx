@@ -209,7 +209,10 @@ export class App extends Component<{}, State> {
     JSZip.loadAsync(file)
       .then(getImageEntries)
       .then((imageEntries) => Promise.all(imageEntries.map(loadImageFile)))
-      .then((imageFiles) => {
+      .then((unsortedImageFiles) => {
+        const imageFiles = unsortedImageFiles.sort((a, b) =>
+          compareStrings(a.name, b.name)
+        );
         this.setState({
           uploadedFileName: file.name,
           imageFiles,
@@ -551,4 +554,16 @@ function downloadZipFile(zip: JSZip, zipFileName: string): void {
     a.download = zipFileName;
     a.click();
   });
+}
+
+function compareStrings(a: string, b: string): number {
+  if (a < b) {
+    return -1;
+  }
+
+  if (a > b) {
+    return 1;
+  }
+
+  return 0;
 }
