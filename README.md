@@ -5,6 +5,8 @@
 > ```sh
 > npm create vite@latest autocrop -- --template react-ts
 > ```
+>
+> After I ran the above command, I expanded the ESLint configuration according to the instructions below (in the [Expanding the ESLint configuration](#expanding-the-eslint-configuration) section).
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
