@@ -2,6 +2,7 @@ import { Component, ReactNode } from "react";
 import JSZip from "jszip";
 
 interface State {
+  readonly uploadedFileName: string;
   readonly imageFiles: readonly ImageFile[];
   readonly shouldListFiles: boolean;
   readonly transparentPaddingInputValue: string;
@@ -29,6 +30,7 @@ export class App extends Component<{}, State> {
     super(props);
 
     this.state = {
+      uploadedFileName: "",
       imageFiles: [],
       shouldListFiles: true,
       transparentPaddingInputValue: "0",
@@ -153,6 +155,7 @@ export class App extends Component<{}, State> {
       .then((imageEntries) => Promise.all(imageEntries.map(loadImageFile)))
       .then((imageFiles) => {
         this.setState({
+          uploadedFileName: file.name,
           imageFiles,
         });
       });
@@ -177,7 +180,8 @@ export class App extends Component<{}, State> {
   }
 
   onDownloadButtonClick(): void {
-    const { imageFiles, transparentPaddingInputValue } = this.state;
+    const { uploadedFileName, imageFiles, transparentPaddingInputValue } =
+      this.state;
 
     if (
       !(
@@ -195,7 +199,10 @@ export class App extends Component<{}, State> {
 
     const cropped = cropImagesAndAddPadding(imageFiles, transparentPadding);
     const zipped = zipImageFiles(cropped);
-    downloadZipFile(zipped);
+    downloadZipFile(
+      zipped,
+      uploadedFileName.replace(/\.[zZ][iI][pP]$/, ".cropped.zip")
+    );
     // TODO: Only download a single image file if there is only one image.
   }
 }
@@ -428,12 +435,12 @@ function getImageFileBuffer(file: ImageFile): Promise<ArrayBuffer> {
   });
 }
 
-function downloadZipFile(zip: JSZip): void {
+function downloadZipFile(zip: JSZip, zipFileName: string): void {
   zip.generateAsync({ type: "blob" }).then((blob) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "cropped.zip";
+    a.download = zipFileName;
     a.click();
   });
 }
