@@ -1,9 +1,17 @@
 # For me (Kyle)
 
+> If you're not me (Kyle), you can ignore this file.
+>
+> Even if you _are_ me, you can probably ignore this file.
+> There is nothing important here pertaining to developing this project itself.
+> It only helps for bootstrapping a similar project in the future.
+
 In case I need to figure out how to boostrap a similar project in the future,
 I am saving this guide to save future me some time.
 
 This guide is very messy, but I'll be able to figure it out. Probably.
+
+I will not rewrite this guide to make it easy for others to understand, since it is intended for me alone. However, if you're able to understand it, feel free to use it.
 
 ## Bootstrapping the project
 
