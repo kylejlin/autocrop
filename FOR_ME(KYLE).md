@@ -1,7 +1,7 @@
-# For developers
+# For me (Kyle)
 
-In case I (or someone else) needs to figure out how to boostrap a similar project in the future,
-I am saving this guide to save future me (or someone else) some time.
+In case I need to figure out how to boostrap a similar project in the future,
+I am saving this guide to save future me some time.
 
 This guide is very messy, but I'll be able to figure it out. Probably.
 
