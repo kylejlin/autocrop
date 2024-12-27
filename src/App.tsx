@@ -26,7 +26,7 @@ interface CropBounds {
   readonly maxVisiblePixelY: number;
 }
 
-const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".svg"];
+const IMAGE_EXTENSIONS = [".png", ".svg"];
 
 export class App extends Component<{}, State> {
   constructor(props: {}) {
