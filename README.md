@@ -1,58 +1,7 @@
-# React + TypeScript + Vite
+# Autocrop
 
-> This project was bootstrapped with Vite, using the command
->
-> ```sh
-> npm create vite@latest autocrop -- --template react-ts
-> ```
->
-> After I ran the above command, I expanded the ESLint configuration according to the instructions below (in the [Expanding the ESLint configuration](#expanding-the-eslint-configuration) section).
+A simple web app that crops images. You can try it [here](https://kylejlin.github.io/autocrop).
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The app automatically crops out as much as it can without losing any visible pixels (i.e., pixels with a non-zero alpha value).
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-});
-```
-
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from "eslint-plugin-react";
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: "18.3" } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs["jsx-runtime"].rules,
-  },
-});
-```
+You can upload a single image or a ZIP file containing multiple images.
