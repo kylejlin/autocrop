@@ -2,6 +2,7 @@ import { Component, ReactNode } from "react";
 import JSZip from "jszip";
 
 interface State {
+  readonly isProcessingFile: boolean;
   readonly uploadedFileName: string;
   readonly originalImageFiles: readonly ImageFile[];
   readonly shouldHideOriginalPreviews: boolean;
@@ -33,6 +34,7 @@ export class App extends Component<{}, State> {
     super(props);
 
     this.state = {
+      isProcessingFile: false,
       uploadedFileName: "",
       originalImageFiles: [],
       shouldHideOriginalPreviews: false,
@@ -60,6 +62,7 @@ export class App extends Component<{}, State> {
 
   render(): ReactNode {
     const {
+      isProcessingFile,
       uploadedFileName,
       shouldHideOriginalPreviews,
       originalImageFiles,
@@ -79,7 +82,9 @@ export class App extends Component<{}, State> {
         <section>
           <h2>Step 1: Upload and review.</h2>
 
-          {originalImageFiles.length === 0 ? (
+          {isProcessingFile ? (
+            <p>Processing file...</p>
+          ) : originalImageFiles.length === 0 ? (
             <>
               <p>Upload an image or zip file.</p>
               <p>Files with names that start with a "." will be ignored.</p>
@@ -233,12 +238,22 @@ export class App extends Component<{}, State> {
     const file = files[0];
 
     if (isZipFileName(file.name)) {
-      this.onZipFileUpload(file);
+      this.setState(
+        {
+          isProcessingFile: true,
+        },
+        () => this.onZipFileUpload(file)
+      );
       return;
     }
 
     if (isImageFileName(file.name)) {
-      this.onImageFileUpload(file);
+      this.setState(
+        {
+          isProcessingFile: true,
+        },
+        () => this.onImageFileUpload(file)
+      );
       return;
     }
 
@@ -256,6 +271,7 @@ export class App extends Component<{}, State> {
           compareStrings(a.name, b.name)
         );
         this.setState({
+          isProcessingFile: false,
           uploadedFileName: file.name,
           originalImageFiles,
           croppedImageFiles: [],
@@ -269,6 +285,7 @@ export class App extends Component<{}, State> {
       .then((buffer) => loadImageFileFromArrayBuffer(buffer, file.name))
       .then((imageFile) => {
         this.setState({
+          isProcessingFile: false,
           uploadedFileName: file.name,
           originalImageFiles: [imageFile],
           croppedImageFiles: [],
