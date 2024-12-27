@@ -6,6 +6,7 @@ interface State {
   readonly imageFiles: readonly ImageFile[];
   readonly shouldListFiles: boolean;
   readonly transparentPaddingInputValue: string;
+  readonly croppedImageFiles: readonly ImageFile[];
 }
 
 interface ImageFile {
@@ -34,6 +35,7 @@ export class App extends Component<{}, State> {
       imageFiles: [],
       shouldListFiles: true,
       transparentPaddingInputValue: "0",
+      croppedImageFiles: [],
     };
 
     this.bindMethods();
@@ -44,12 +46,17 @@ export class App extends Component<{}, State> {
     this.onShouldListFilesChange = this.onShouldListFilesChange.bind(this);
     this.onTransparentPaddingInputValueChange =
       this.onTransparentPaddingInputValueChange.bind(this);
+    this.onCropButtonClick = this.onCropButtonClick.bind(this);
     this.onDownloadButtonClick = this.onDownloadButtonClick.bind(this);
   }
 
   render(): ReactNode {
-    const { imageFiles, shouldListFiles, transparentPaddingInputValue } =
-      this.state;
+    const {
+      imageFiles,
+      shouldListFiles,
+      transparentPaddingInputValue,
+      croppedImageFiles,
+    } = this.state;
 
     return (
       <div>
@@ -109,8 +116,8 @@ export class App extends Component<{}, State> {
         </section>
 
         <section>
-          <h2>Step 3: Download the cropped images.</h2>
-          <p>Click the button below to download the cropped images.</p>
+          <h2>Step 3: Crop and review.</h2>
+          <p>Click the button below to crop the images.</p>
           <button
             disabled={
               !(
@@ -118,6 +125,17 @@ export class App extends Component<{}, State> {
                 isValidNonNegativeInteger(transparentPaddingInputValue)
               )
             }
+            onClick={this.onCropButtonClick}
+          >
+            Crop
+          </button>
+        </section>
+
+        <section>
+          <h2>Step 4: Download the cropped images.</h2>
+          <p>Click the button below to download the cropped images.</p>
+          <button
+            disabled={croppedImageFiles.length === 0}
             onClick={this.onDownloadButtonClick}
           >
             Download
@@ -157,6 +175,7 @@ export class App extends Component<{}, State> {
         this.setState({
           uploadedFileName: file.name,
           imageFiles,
+          croppedImageFiles: [],
         });
       });
   }
@@ -176,12 +195,12 @@ export class App extends Component<{}, State> {
   ): void {
     this.setState({
       transparentPaddingInputValue: event.target.value,
+      croppedImageFiles: [],
     });
   }
 
-  onDownloadButtonClick(): void {
-    const { uploadedFileName, imageFiles, transparentPaddingInputValue } =
-      this.state;
+  onCropButtonClick(): void {
+    const { imageFiles, transparentPaddingInputValue } = this.state;
 
     if (
       !(
@@ -197,12 +216,30 @@ export class App extends Component<{}, State> {
       10
     );
 
-    const cropped = cropImagesAndAddPadding(imageFiles, transparentPadding);
-    const zipped = zipImageFiles(cropped);
+    const croppedImageFiles = cropImagesAndAddPadding(
+      imageFiles,
+      transparentPadding
+    );
+
+    this.setState({
+      croppedImageFiles,
+    });
+  }
+
+  onDownloadButtonClick(): void {
+    const { uploadedFileName, croppedImageFiles } = this.state;
+
+    if (croppedImageFiles.length === 0) {
+      return;
+    }
+
+    const zipped = zipImageFiles(croppedImageFiles);
+
     downloadZipFile(
       zipped,
       uploadedFileName.replace(/\.[zZ][iI][pP]$/, ".cropped.zip")
     );
+
     // TODO: Only download a single image file if there is only one image.
   }
 }
