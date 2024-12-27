@@ -429,5 +429,11 @@ function getImageFileBuffer(file: ImageFile): Promise<ArrayBuffer> {
 }
 
 function downloadZipFile(zip: JSZip): void {
-  throw new Error("Not implemented.");
+  zip.generateAsync({ type: "blob" }).then((blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cropped.zip";
+    a.click();
+  });
 }
