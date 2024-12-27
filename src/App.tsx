@@ -88,15 +88,18 @@ export class App extends Component<{}, State> {
               </label>
 
               <p>
-                Files ({imageFiles.length}){shouldListFiles ? ":" : ""}
+                Non-cropped files ({imageFiles.length})
+                {shouldListFiles ? ":" : ""}
               </p>
 
               {shouldListFiles && (
                 <ol>
-                  {imageFiles.map((file) => (
-                    <li key={file.name}>
-                      {file.name} ({file.width}x{file.height})
-                    </li>
+                  {imageFiles.map((file, index) => (
+                    <ImagePreview
+                      key={file.name}
+                      file={file}
+                      fileIndex={index}
+                    />
                   ))}
                 </ol>
               )}
@@ -152,16 +155,11 @@ export class App extends Component<{}, State> {
               {shouldListFiles && (
                 <ol>
                   {croppedImageFiles.map((file, index) => (
-                    <li className="PreviewContainer" key={file.name}>
-                      <span className="PreviewName">
-                        {index + 1}. {file.name} ({file.width}x{file.height})
-                      </span>
-                      <img
-                        className="PreviewImage"
-                        src={file.url}
-                        alt={file.name}
-                      />
-                    </li>
+                    <ImagePreview
+                      key={file.name}
+                      file={file}
+                      fileIndex={index}
+                    />
                   ))}
                 </ol>
               )}
@@ -282,6 +280,23 @@ export class App extends Component<{}, State> {
 
     // TODO: Only download a single image file if there is only one image.
   }
+}
+
+function ImagePreview({
+  file,
+  fileIndex,
+}: {
+  readonly file: ImageFile;
+  readonly fileIndex: number;
+}): React.ReactElement {
+  return (
+    <li className="PreviewContainer">
+      <span className="PreviewName">
+        {fileIndex + 1}. {file.name} ({file.width}x{file.height})
+      </span>
+      <img className="PreviewImage" src={file.url} alt={file.name} />
+    </li>
+  );
 }
 
 function isZipFileName(name: string): boolean {
