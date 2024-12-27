@@ -14,6 +14,7 @@ interface ImageFile {
   readonly width: number;
   readonly height: number;
   readonly data: Uint8ClampedArray;
+  readonly url: string;
   readonly cropBounds: CropBounds;
 }
 
@@ -64,15 +65,17 @@ export class App extends Component<{}, State> {
 
         <section>
           <h2>Step 1: Upload a file.</h2>
-          <p>Upload an image or zip file.</p>
-          <p>Files with names that start with a "." will be ignored.</p>
 
           {imageFiles.length === 0 ? (
-            <input
-              type="file"
-              accept={[".zip"].concat(IMAGE_EXTENSIONS).join(",")}
-              onChange={this.onFileInputChange}
-            />
+            <>
+              <p>Upload an image or zip file.</p>
+              <p>Files with names that start with a "." will be ignored.</p>
+              <input
+                type="file"
+                accept={[".zip"].concat(IMAGE_EXTENSIONS).join(",")}
+                onChange={this.onFileInputChange}
+              />
+            </>
           ) : (
             <>
               <label>
@@ -117,18 +120,53 @@ export class App extends Component<{}, State> {
 
         <section>
           <h2>Step 3: Crop and review.</h2>
-          <p>Click the button below to crop the images.</p>
-          <button
-            disabled={
-              !(
-                imageFiles.length > 0 &&
-                isValidNonNegativeInteger(transparentPaddingInputValue)
-              )
-            }
-            onClick={this.onCropButtonClick}
-          >
-            Crop
-          </button>
+
+          {croppedImageFiles.length === 0 ? (
+            <button
+              disabled={
+                !(
+                  imageFiles.length > 0 &&
+                  isValidNonNegativeInteger(transparentPaddingInputValue)
+                )
+              }
+              onClick={this.onCropButtonClick}
+            >
+              Crop
+            </button>
+          ) : (
+            <>
+              <label>
+                List files{" "}
+                <input
+                  type="checkbox"
+                  checked={shouldListFiles}
+                  onChange={this.onShouldListFilesChange}
+                />
+              </label>
+
+              <p>
+                Cropped files ({croppedImageFiles.length})
+                {shouldListFiles ? ":" : ""}
+              </p>
+
+              {shouldListFiles && (
+                <ol>
+                  {croppedImageFiles.map((file, index) => (
+                    <li className="PreviewContainer" key={file.name}>
+                      <span className="PreviewName">
+                        {index + 1}. {file.name} ({file.width}x{file.height})
+                      </span>
+                      <img
+                        className="PreviewImage"
+                        src={file.url}
+                        alt={file.name}
+                      />
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </>
+          )}
         </section>
 
         <section>
@@ -216,14 +254,13 @@ export class App extends Component<{}, State> {
       10
     );
 
-    const croppedImageFiles = cropImagesAndAddPadding(
-      imageFiles,
-      transparentPadding
+    cropImagesAndAddPadding(imageFiles, transparentPadding).then(
+      (croppedImageFiles) => {
+        this.setState({
+          croppedImageFiles,
+        });
+      }
     );
-
-    this.setState({
-      croppedImageFiles,
-    });
   }
 
   onDownloadButtonClick(): void {
@@ -321,12 +358,25 @@ function loadImageFile(zipEntry: JSZip.JSZipObject): Promise<ImageFile> {
 
         const cropBounds = getCropBounds(imageData);
 
-        resolve({
-          name: zipEntry.name,
-          width: canvas.width,
-          height: canvas.height,
-          data: imageData.data,
-          cropBounds,
+        canvas.toBlob((blob) => {
+          if (blob === null) {
+            const error = new Error(
+              "Failed to create blob for " + zipEntry.name
+            );
+            reject(error);
+            throw error;
+          }
+
+          const url = URL.createObjectURL(blob);
+
+          resolve({
+            name: zipEntry.name,
+            width: canvas.width,
+            height: canvas.height,
+            data: imageData.data,
+            url,
+            cropBounds,
+          });
         });
       });
 
@@ -387,14 +437,16 @@ function isValidNonNegativeInteger(s: string): boolean {
 function cropImagesAndAddPadding(
   imageFiles: readonly ImageFile[],
   transparentPadding: number
-): readonly ImageFile[] {
-  return imageFiles.map((f) => cropImageAndAddPadding(f, transparentPadding));
+): Promise<readonly ImageFile[]> {
+  return Promise.all(
+    imageFiles.map((f) => cropImageAndAddPadding(f, transparentPadding))
+  );
 }
 
 function cropImageAndAddPadding(
   imageFile: ImageFile,
   transparentPadding: number
-): ImageFile {
+): Promise<ImageFile> {
   const {
     minVisiblePixelX,
     maxVisiblePixelX,
@@ -426,18 +478,37 @@ function cropImageAndAddPadding(
     }
   }
 
-  return {
-    name: imageFile.name,
-    width: paddedWidth,
-    height: paddedHeight,
-    data: paddedData,
-    cropBounds: {
-      minVisiblePixelX: transparentPadding,
-      maxVisiblePixelX: transparentPadding + unpaddedWidth - 1,
-      minVisiblePixelY: transparentPadding,
-      maxVisiblePixelY: transparentPadding + unpaddedHeight - 1,
-    },
-  };
+  const canvas = document.createElement("canvas");
+  canvas.width = paddedWidth;
+  canvas.height = paddedHeight;
+  const context = canvas.getContext("2d")!;
+  const imageData = new ImageData(paddedData, paddedWidth, paddedHeight);
+  context.putImageData(imageData, 0, 0);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob === null) {
+        const error = new Error("Failed to create blob for " + imageFile.name);
+        reject(error);
+        throw error;
+      }
+
+      const url = URL.createObjectURL(blob);
+
+      resolve({
+        name: imageFile.name,
+        width: paddedWidth,
+        height: paddedHeight,
+        data: paddedData,
+        url,
+        cropBounds: {
+          minVisiblePixelX: transparentPadding,
+          maxVisiblePixelX: transparentPadding + unpaddedWidth - 1,
+          minVisiblePixelY: transparentPadding,
+          maxVisiblePixelY: transparentPadding + unpaddedHeight - 1,
+        },
+      });
+    });
+  });
 }
 
 function zipImageFiles(imageFiles: readonly ImageFile[]): JSZip {
