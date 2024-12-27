@@ -3,6 +3,8 @@ import JSZip from "jszip";
 
 interface State {
   readonly imageFiles: readonly ImageFile[];
+  readonly shouldListFiles: boolean;
+  readonly transparentPaddingInputValue: string;
 }
 
 interface ImageFile {
@@ -28,6 +30,8 @@ export class App extends Component<{}, State> {
 
     this.state = {
       imageFiles: [],
+      shouldListFiles: true,
+      transparentPaddingInputValue: "0",
     };
 
     this.bindMethods();
@@ -35,21 +39,88 @@ export class App extends Component<{}, State> {
 
   bindMethods(): void {
     this.onFileInputChange = this.onFileInputChange.bind(this);
+    this.onShouldListFilesChange = this.onShouldListFilesChange.bind(this);
+    this.onTransparentPaddingInputValueChange =
+      this.onTransparentPaddingInputValueChange.bind(this);
+    this.onDownloadButtonClick = this.onDownloadButtonClick.bind(this);
   }
 
   render(): ReactNode {
+    const { imageFiles, shouldListFiles, transparentPaddingInputValue } =
+      this.state;
+
     return (
       <div>
         <h1>Autocropper</h1>
 
-        <p>Upload an image or zip file.</p>
-        <p>Files with names that start with a "." will be ignored.</p>
+        <section>
+          <h2>Step 1: Upload a file.</h2>
+          <p>Upload an image or zip file.</p>
+          <p>Files with names that start with a "." will be ignored.</p>
 
-        <input
-          type="file"
-          accept={[".zip"].concat(IMAGE_EXTENSIONS).join(",")}
-          onChange={this.onFileInputChange}
-        />
+          {imageFiles.length === 0 ? (
+            <input
+              type="file"
+              accept={[".zip"].concat(IMAGE_EXTENSIONS).join(",")}
+              onChange={this.onFileInputChange}
+            />
+          ) : (
+            <>
+              <label>
+                List files{" "}
+                <input
+                  type="checkbox"
+                  checked={shouldListFiles}
+                  onChange={this.onShouldListFilesChange}
+                />
+              </label>
+
+              <p>
+                Files ({imageFiles.length}){shouldListFiles ? ":" : ""}
+              </p>
+
+              {shouldListFiles && (
+                <ol>
+                  {imageFiles.map((file) => (
+                    <li key={file.name}>
+                      {file.name} ({file.width}x{file.height})
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </>
+          )}
+        </section>
+
+        <section>
+          <h2>Step 2: Select transparent padding.</h2>
+          <input
+            className={
+              isValidNonNegativeInteger(transparentPaddingInputValue)
+                ? ""
+                : "InvalidInput"
+            }
+            type="text"
+            value={transparentPaddingInputValue}
+            onChange={this.onTransparentPaddingInputValueChange}
+          />
+        </section>
+
+        <section>
+          <h2>Step 3: Download the cropped images.</h2>
+          <p>Click the button below to download the cropped images.</p>
+          <button
+            disabled={
+              !(
+                imageFiles.length > 0 &&
+                isValidNonNegativeInteger(transparentPaddingInputValue)
+              )
+            }
+            onClick={this.onDownloadButtonClick}
+          >
+            Download
+          </button>
+        </section>
       </div>
     );
   }
@@ -84,13 +155,47 @@ export class App extends Component<{}, State> {
         this.setState({
           imageFiles,
         });
-
-        console.log(imageFiles);
       });
   }
 
   onImageFileUpload(file: File): void {
     // TODO
+  }
+
+  onShouldListFilesChange(event: React.ChangeEvent<HTMLInputElement>): void {
+    this.setState({
+      shouldListFiles: event.target.checked,
+    });
+  }
+
+  onTransparentPaddingInputValueChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void {
+    this.setState({
+      transparentPaddingInputValue: event.target.value,
+    });
+  }
+
+  onDownloadButtonClick(): void {
+    const { imageFiles, transparentPaddingInputValue } = this.state;
+
+    if (
+      !(
+        imageFiles.length > 0 &&
+        isValidNonNegativeInteger(transparentPaddingInputValue)
+      )
+    ) {
+      return;
+    }
+
+    const transparentPadding = Number.parseInt(
+      transparentPaddingInputValue,
+      10
+    );
+
+    const cropped = cropImagesAndAddPadding(imageFiles, transparentPadding);
+
+    zipImageFiles(cropped).then(downloadZipFile);
   }
 }
 
@@ -224,4 +329,23 @@ function getCropBounds({
     minVisiblePixelY,
     maxVisiblePixelY,
   };
+}
+
+function isValidNonNegativeInteger(s: string): boolean {
+  return /^\d+$/.test(s);
+}
+
+function cropImagesAndAddPadding(
+  imageFiles: readonly ImageFile[],
+  transparentPadding: number
+): readonly ImageFile[] {
+  throw new Error("Not implemented.");
+}
+
+function zipImageFiles(imageFiles: readonly ImageFile[]): Promise<JSZip> {
+  throw new Error("Not implemented.");
+}
+
+function downloadZipFile(zip: JSZip): void {
+  throw new Error("Not implemented.");
 }

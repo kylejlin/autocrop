@@ -1,0 +1,5 @@
+.InvalidInput {
+  border: 1px solid red;
+  color: red;
+  outline-color: red;
+}
