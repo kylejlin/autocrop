@@ -194,8 +194,9 @@ export class App extends Component<{}, State> {
     );
 
     const cropped = cropImagesAndAddPadding(imageFiles, transparentPadding);
-
-    zipImageFiles(cropped).then(downloadZipFile);
+    const zipped = zipImageFiles(cropped);
+    downloadZipFile(zipped);
+    // TODO: Only download a single image file if there is only one image.
   }
 }
 
@@ -246,7 +247,7 @@ function getImageEntries(zip: JSZip): readonly JSZip.JSZipObject[] {
 }
 
 function loadImageFile(zipEntry: JSZip.JSZipObject): Promise<ImageFile> {
-  const dotlessExtension = zipEntry.name.toLowerCase().split(".").pop()!;
+  const dotlessExtension = getDotlessExtension(zipEntry.name);
   if (!isImageFileName("test." + dotlessExtension)) {
     throw new Error("Invalid image file type. Name: " + zipEntry.name);
   }
@@ -292,6 +293,10 @@ function loadImageFile(zipEntry: JSZip.JSZipObject): Promise<ImageFile> {
 
     return out;
   });
+}
+
+function getDotlessExtension(name: string): string {
+  return name.toLowerCase().split(".").pop() ?? "";
 }
 
 function getCropBounds({
@@ -391,8 +396,36 @@ function cropImageAndAddPadding(
   };
 }
 
-function zipImageFiles(imageFiles: readonly ImageFile[]): Promise<JSZip> {
-  throw new Error("Not implemented.");
+function zipImageFiles(imageFiles: readonly ImageFile[]): JSZip {
+  const zip = new JSZip();
+
+  for (const file of imageFiles) {
+    const buffer = getImageFileBuffer(file);
+    zip.file(file.name, buffer);
+  }
+
+  return zip;
+}
+
+function getImageFileBuffer(file: ImageFile): Promise<ArrayBuffer> {
+  const canvas = document.createElement("canvas");
+  canvas.width = file.width;
+  canvas.height = file.height;
+  const context = canvas.getContext("2d")!;
+  const imageData = new ImageData(file.data, file.width, file.height);
+  context.putImageData(imageData, 0, 0);
+
+  const dotlessExtension = getDotlessExtension(file.name);
+  const mimeType = "image/" + dotlessExtension.toLowerCase();
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      if (blob === null) {
+        throw new Error("Failed to create blob for " + file.name);
+      }
+
+      resolve(blob.arrayBuffer());
+    }, mimeType);
+  });
 }
 
 function downloadZipFile(zip: JSZip): void {
