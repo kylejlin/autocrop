@@ -54,10 +54,13 @@ export class App extends Component<{}, State> {
       this.onTransparentPaddingInputValueChange.bind(this);
     this.onCropButtonClick = this.onCropButtonClick.bind(this);
     this.onDownloadButtonClick = this.onDownloadButtonClick.bind(this);
+    this.onDownloadCropMetadataButtonClick =
+      this.onDownloadCropMetadataButtonClick.bind(this);
   }
 
   render(): ReactNode {
     const {
+      uploadedFileName,
       shouldHideOriginalPreviews,
       originalImageFiles,
       transparentPaddingInputValue,
@@ -65,7 +68,9 @@ export class App extends Component<{}, State> {
       shouldHideCroppedPreviews,
     } = this.state;
 
-    const downloadName = getDownloadName(this.state.uploadedFileName);
+    const downloadName = getDownloadName(uploadedFileName);
+    const cropRectangleMetadataDownloadName =
+      getCropMetadataDownloadName(uploadedFileName);
 
     return (
       <div>
@@ -192,6 +197,15 @@ export class App extends Component<{}, State> {
             onClick={this.onDownloadButtonClick}
           >
             Download {downloadName}
+          </button>
+
+          <p>You can also download the crop metadata.</p>
+
+          <button
+            disabled={croppedImageFiles.length === 0}
+            onClick={this.onDownloadCropMetadataButtonClick}
+          >
+            Download {cropRectangleMetadataDownloadName}
           </button>
         </section>
       </div>
@@ -334,6 +348,29 @@ export class App extends Component<{}, State> {
     const zipped = zipImageFiles(croppedImageFiles);
 
     downloadZipFile(zipped, downloadName);
+  }
+
+  onDownloadCropMetadataButtonClick(): void {
+    const { uploadedFileName, croppedImageFiles, originalImageFiles } =
+      this.state;
+
+    if (croppedImageFiles.length === 0) {
+      return;
+    }
+
+    const downloadName = getCropMetadataDownloadName(uploadedFileName);
+
+    // We need to get the crop metadata from the original image files,
+    // since it's not particularly useful to download the crop metadata of the cropped files.
+    const cropMetadataString = getCropMetadataString(originalImageFiles);
+
+    const blob = new Blob([cropMetadataString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = downloadName;
+    a.click();
   }
 }
 
@@ -646,4 +683,21 @@ function getDownloadName(uploadedFileName: string): string {
     /\.[^.]+$/,
     ".cropped." + dotlessExtension.toLowerCase()
   );
+}
+
+function getCropMetadataDownloadName(uploadedFileName: string): string {
+  return uploadedFileName.replace(/\.[^.]+$/, ".crop_metadata.json");
+}
+
+function getCropMetadataString(files: readonly ImageFile[]): string {
+  const sortedFiles: readonly ImageFile[] = files
+    .slice()
+    .sort((a, b) => compareStrings(a.name, b.name));
+
+  const out = sortedFiles.map((file) => {
+    const { name, width, height, cropBounds } = file;
+    return { name, width, height, ...cropBounds };
+  });
+
+  return JSON.stringify(out, null, 4);
 }
