@@ -285,14 +285,38 @@ export class App extends Component<{}, State> {
       return;
     }
 
+    // If the original file was an image file (not a zip file),
+    // then download an image file (instead of a zip file).
+    if (isImageFileName(uploadedFileName)) {
+      const [file] = croppedImageFiles;
+
+      getImageFileBuffer(file).then((buffer) => {
+        const dotlessExtension = getDotlessExtension(uploadedFileName);
+
+        const mimeType = "image/" + dotlessExtension.toLowerCase();
+        const blob = new Blob([buffer], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+
+        const downloadFileName = uploadedFileName.replace(
+          /\.[^.]+$/,
+          ".cropped." + dotlessExtension.toLowerCase()
+        );
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = downloadFileName;
+        a.click();
+      });
+
+      return;
+    }
+
     const zipped = zipImageFiles(croppedImageFiles);
 
     downloadZipFile(
       zipped,
       uploadedFileName.replace(/\.[zZ][iI][pP]$/, ".cropped.zip")
     );
-
-    // TODO: Only download a single image file if there is only one image.
   }
 }
 
