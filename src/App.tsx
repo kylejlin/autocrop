@@ -3,10 +3,11 @@ import JSZip from "jszip";
 
 interface State {
   readonly uploadedFileName: string;
-  readonly imageFiles: readonly ImageFile[];
-  readonly shouldListFiles: boolean;
+  readonly originalImageFiles: readonly ImageFile[];
+  readonly shouldHideOriginalPreviews: boolean;
   readonly transparentPaddingInputValue: string;
   readonly croppedImageFiles: readonly ImageFile[];
+  readonly shouldHideCroppedPreviews: boolean;
 }
 
 interface ImageFile {
@@ -33,10 +34,11 @@ export class App extends Component<{}, State> {
 
     this.state = {
       uploadedFileName: "",
-      imageFiles: [],
-      shouldListFiles: true,
+      originalImageFiles: [],
+      shouldHideOriginalPreviews: false,
       transparentPaddingInputValue: "0",
       croppedImageFiles: [],
+      shouldHideCroppedPreviews: false,
     };
 
     this.bindMethods();
@@ -44,7 +46,10 @@ export class App extends Component<{}, State> {
 
   bindMethods(): void {
     this.onFileInputChange = this.onFileInputChange.bind(this);
-    this.onShouldListFilesChange = this.onShouldListFilesChange.bind(this);
+    this.onShouldHideOriginalPreviewsChange =
+      this.onShouldHideOriginalPreviewsChange.bind(this);
+    this.onShouldHideCroppedPreviewsChange =
+      this.onShouldHideCroppedPreviewsChange.bind(this);
     this.onTransparentPaddingInputValueChange =
       this.onTransparentPaddingInputValueChange.bind(this);
     this.onCropButtonClick = this.onCropButtonClick.bind(this);
@@ -53,10 +58,11 @@ export class App extends Component<{}, State> {
 
   render(): ReactNode {
     const {
-      imageFiles,
-      shouldListFiles,
+      shouldHideOriginalPreviews,
+      originalImageFiles,
       transparentPaddingInputValue,
       croppedImageFiles,
+      shouldHideCroppedPreviews,
     } = this.state;
 
     return (
@@ -64,9 +70,9 @@ export class App extends Component<{}, State> {
         <h1>Autocropper</h1>
 
         <section>
-          <h2>Step 1: Upload a file.</h2>
+          <h2>Step 1: Upload and review.</h2>
 
-          {imageFiles.length === 0 ? (
+          {originalImageFiles.length === 0 ? (
             <>
               <p>Upload an image or zip file.</p>
               <p>Files with names that start with a "." will be ignored.</p>
@@ -78,23 +84,22 @@ export class App extends Component<{}, State> {
             </>
           ) : (
             <>
+              <p>Non-cropped files ({originalImageFiles.length}):</p>
+
               <label>
-                List files{" "}
+                Hide{" "}
                 <input
                   type="checkbox"
-                  checked={shouldListFiles}
-                  onChange={this.onShouldListFilesChange}
+                  checked={shouldHideOriginalPreviews}
+                  onChange={this.onShouldHideOriginalPreviewsChange}
                 />
               </label>
 
-              <p>
-                Non-cropped files ({imageFiles.length})
-                {shouldListFiles ? ":" : ""}
-              </p>
-
-              {shouldListFiles && (
+              {shouldHideOriginalPreviews ? (
+                <p>Hidden.</p>
+              ) : (
                 <ol>
-                  {imageFiles.map((file, index) => (
+                  {originalImageFiles.map((file, index) => (
                     <ImagePreview
                       key={file.name}
                       file={file}
@@ -128,7 +133,7 @@ export class App extends Component<{}, State> {
             <button
               disabled={
                 !(
-                  imageFiles.length > 0 &&
+                  originalImageFiles.length > 0 &&
                   isValidNonNegativeInteger(transparentPaddingInputValue)
                 )
               }
@@ -138,21 +143,20 @@ export class App extends Component<{}, State> {
             </button>
           ) : (
             <>
+              <p>Cropped files ({croppedImageFiles.length}):</p>
+
               <label>
-                List files{" "}
+                Hide{" "}
                 <input
                   type="checkbox"
-                  checked={shouldListFiles}
-                  onChange={this.onShouldListFilesChange}
+                  checked={shouldHideCroppedPreviews}
+                  onChange={this.onShouldHideCroppedPreviewsChange}
                 />
               </label>
 
-              <p>
-                Cropped files ({croppedImageFiles.length})
-                {shouldListFiles ? ":" : ""}
-              </p>
-
-              {shouldListFiles && (
+              {shouldHideCroppedPreviews ? (
+                <p>Hidden.</p>
+              ) : (
                 <ol>
                   {croppedImageFiles.map((file, index) => (
                     <ImagePreview
@@ -208,12 +212,12 @@ export class App extends Component<{}, State> {
       .then(getImageEntries)
       .then((imageEntries) => Promise.all(imageEntries.map(loadImageFile)))
       .then((unsortedImageFiles) => {
-        const imageFiles = unsortedImageFiles.sort((a, b) =>
+        const originalImageFiles = unsortedImageFiles.sort((a, b) =>
           compareStrings(a.name, b.name)
         );
         this.setState({
           uploadedFileName: file.name,
-          imageFiles,
+          originalImageFiles,
           croppedImageFiles: [],
         });
       });
@@ -223,9 +227,19 @@ export class App extends Component<{}, State> {
     // TODO
   }
 
-  onShouldListFilesChange(event: React.ChangeEvent<HTMLInputElement>): void {
+  onShouldHideOriginalPreviewsChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void {
     this.setState({
-      shouldListFiles: event.target.checked,
+      shouldHideOriginalPreviews: event.target.checked,
+    });
+  }
+
+  onShouldHideCroppedPreviewsChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void {
+    this.setState({
+      shouldHideCroppedPreviews: event.target.checked,
     });
   }
 
@@ -239,11 +253,11 @@ export class App extends Component<{}, State> {
   }
 
   onCropButtonClick(): void {
-    const { imageFiles, transparentPaddingInputValue } = this.state;
+    const { originalImageFiles, transparentPaddingInputValue } = this.state;
 
     if (
       !(
-        imageFiles.length > 0 &&
+        originalImageFiles.length > 0 &&
         isValidNonNegativeInteger(transparentPaddingInputValue)
       )
     ) {
@@ -255,7 +269,7 @@ export class App extends Component<{}, State> {
       10
     );
 
-    cropImagesAndAddPadding(imageFiles, transparentPadding).then(
+    cropImagesAndAddPadding(originalImageFiles, transparentPadding).then(
       (croppedImageFiles) => {
         this.setState({
           croppedImageFiles,
@@ -453,11 +467,11 @@ function isValidNonNegativeInteger(s: string): boolean {
 }
 
 function cropImagesAndAddPadding(
-  imageFiles: readonly ImageFile[],
+  files: readonly ImageFile[],
   transparentPadding: number
 ): Promise<readonly ImageFile[]> {
   return Promise.all(
-    imageFiles.map((f) => cropImageAndAddPadding(f, transparentPadding))
+    files.map((f) => cropImageAndAddPadding(f, transparentPadding))
   );
 }
 
@@ -529,10 +543,10 @@ function cropImageAndAddPadding(
   });
 }
 
-function zipImageFiles(imageFiles: readonly ImageFile[]): JSZip {
+function zipImageFiles(files: readonly ImageFile[]): JSZip {
   const zip = new JSZip();
 
-  for (const file of imageFiles) {
+  for (const file of files) {
     const buffer = getImageFileBuffer(file);
     zip.file(file.name, buffer);
   }
