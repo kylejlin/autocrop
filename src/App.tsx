@@ -191,15 +191,20 @@ export class App extends Component<{}, State> {
 
         <section>
           <h2>Step 4: Download the cropped images.</h2>
-          <p>Click the button below to download the cropped images.</p>
           <button
             disabled={croppedImageFiles.length === 0}
             onClick={this.onDownloadButtonClick}
           >
             Download {downloadName}
           </button>
+        </section>
 
-          <p>You can also download the crop metadata.</p>
+        <section>
+          <h2>(Advanced) Step 5: Download crop metadata.</h2>
+          <p className="BoldFontWeight">
+            This step is optional. If you do not understand this step, then just
+            skip it.
+          </p>
 
           <button
             disabled={croppedImageFiles.length === 0}
@@ -207,6 +212,12 @@ export class App extends Component<{}, State> {
           >
             Download {cropRectangleMetadataDownloadName}
           </button>
+
+          <p>
+            All coordinates in the resulting file are relative to the original
+            (non-cropped) image. You can use these coordinates to place the
+            cropped image in the same position as the original image.
+          </p>
         </section>
       </div>
     );
