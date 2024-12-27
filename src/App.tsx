@@ -210,7 +210,9 @@ export class App extends Component<{}, State> {
   onZipFileUpload(file: File): void {
     JSZip.loadAsync(file)
       .then(getImageEntries)
-      .then((imageEntries) => Promise.all(imageEntries.map(loadImageFile)))
+      .then((imageEntries) =>
+        Promise.all(imageEntries.map(loadImageFileFromZipEntry))
+      )
       .then((unsortedImageFiles) => {
         const originalImageFiles = unsortedImageFiles.sort((a, b) =>
           compareStrings(a.name, b.name)
@@ -383,66 +385,68 @@ function getImageEntries(zip: JSZip): readonly JSZip.JSZipObject[] {
   return out.slice();
 }
 
-function loadImageFile(zipEntry: JSZip.JSZipObject): Promise<ImageFile> {
-  const dotlessExtension = getDotlessExtension(zipEntry.name);
+function loadImageFileFromZipEntry(
+  zipEntry: JSZip.JSZipObject
+): Promise<ImageFile> {
+  return zipEntry
+    .async("arraybuffer")
+    .then((buffer) => loadImageFileFromArrayBuffer(buffer, zipEntry.name));
+}
+
+function loadImageFileFromArrayBuffer(
+  buffer: ArrayBuffer,
+  imageName: string
+): Promise<ImageFile> {
+  const dotlessExtension = getDotlessExtension(imageName);
   if (!isImageFileName("test." + dotlessExtension)) {
-    throw new Error("Invalid image file type. Name: " + zipEntry.name);
+    throw new Error("Invalid image file type. Name: " + imageName);
   }
 
-  return zipEntry.async("arraybuffer").then((buffer) => {
-    const blob = new Blob([buffer], {
-      type: "image/" + dotlessExtension.toLowerCase(),
-    });
-    const url = URL.createObjectURL(blob);
+  const blob = new Blob([buffer], {
+    type: "image/" + dotlessExtension.toLowerCase(),
+  });
+  const url = URL.createObjectURL(blob);
 
-    const image = new Image();
+  const image = new Image();
 
-    const out = new Promise<ImageFile>((resolve, reject) => {
-      image.addEventListener("load", () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
+  const out = new Promise<ImageFile>((resolve, reject) => {
+    image.addEventListener("load", () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
 
-        const context = canvas.getContext("2d")!;
-        context.drawImage(image, 0, 0);
-        const imageData = context.getImageData(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
+      const context = canvas.getContext("2d")!;
+      context.drawImage(image, 0, 0);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-        const cropBounds = getCropBounds(imageData);
+      const cropBounds = getCropBounds(imageData);
 
-        canvas.toBlob((blob) => {
-          if (blob === null) {
-            const error = new Error(
-              "Failed to create blob for " + zipEntry.name
-            );
-            reject(error);
-            throw error;
-          }
+      canvas.toBlob((blob) => {
+        if (blob === null) {
+          const error = new Error("Failed to create blob for " + imageName);
+          reject(error);
+          throw error;
+        }
 
-          const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
 
-          resolve({
-            name: zipEntry.name,
-            width: canvas.width,
-            height: canvas.height,
-            data: imageData.data,
-            url,
-            cropBounds,
-          });
+        resolve({
+          name: imageName,
+          width: canvas.width,
+          height: canvas.height,
+          data: imageData.data,
+          url,
+          cropBounds,
         });
       });
-
-      image.addEventListener("error", reject);
     });
 
-    image.src = url;
-
-    return out;
+    image.addEventListener("error", reject);
   });
+
+  image.src = url;
+
+  return out;
 }
 
 function getDotlessExtension(name: string): string {
