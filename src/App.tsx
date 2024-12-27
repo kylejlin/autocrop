@@ -65,6 +65,8 @@ export class App extends Component<{}, State> {
       shouldHideCroppedPreviews,
     } = this.state;
 
+    const downloadName = getDownloadName(this.state.uploadedFileName);
+
     return (
       <div>
         <h1>Autocropper</h1>
@@ -178,7 +180,7 @@ export class App extends Component<{}, State> {
             disabled={croppedImageFiles.length === 0}
             onClick={this.onDownloadButtonClick}
           >
-            Download
+            Download {downloadName}
           </button>
         </section>
       </div>
@@ -296,6 +298,8 @@ export class App extends Component<{}, State> {
       return;
     }
 
+    const downloadName = getDownloadName(uploadedFileName);
+
     // If the original file was an image file (not a zip file),
     // then download an image file (instead of a zip file).
     if (isImageFileName(uploadedFileName)) {
@@ -303,19 +307,13 @@ export class App extends Component<{}, State> {
 
       getImageFileBuffer(file).then((buffer) => {
         const dotlessExtension = getDotlessExtension(uploadedFileName);
-
         const mimeType = "image/" + dotlessExtension.toLowerCase();
         const blob = new Blob([buffer], { type: mimeType });
         const url = URL.createObjectURL(blob);
 
-        const downloadFileName = uploadedFileName.replace(
-          /\.[^.]+$/,
-          ".cropped." + dotlessExtension.toLowerCase()
-        );
-
         const a = document.createElement("a");
         a.href = url;
-        a.download = downloadFileName;
+        a.download = downloadName;
         a.click();
       });
 
@@ -324,10 +322,7 @@ export class App extends Component<{}, State> {
 
     const zipped = zipImageFiles(croppedImageFiles);
 
-    downloadZipFile(
-      zipped,
-      uploadedFileName.replace(/\.[zZ][iI][pP]$/, ".cropped.zip")
-    );
+    downloadZipFile(zipped, downloadName);
   }
 }
 
@@ -632,4 +627,12 @@ function compareStrings(a: string, b: string): number {
   }
 
   return 0;
+}
+
+function getDownloadName(uploadedFileName: string): string {
+  const dotlessExtension = getDotlessExtension(uploadedFileName);
+  return uploadedFileName.replace(
+    /\.[^.]+$/,
+    ".cropped." + dotlessExtension.toLowerCase()
+  );
 }
