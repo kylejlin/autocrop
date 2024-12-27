@@ -13,6 +13,10 @@ input[type="text"] {
   border-style: solid;
 }
 
+.BoldFontWeight {
+  font-weight: bold;
+}
+
 .InvalidInput {
   color: red;
   border-color: red;

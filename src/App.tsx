@@ -115,7 +115,17 @@ export class App extends Component<{}, State> {
         </section>
 
         <section>
-          <h2>Step 2: Select transparent padding.</h2>
+          <h2>(Advanced) Step 2: Select transparent padding.</h2>
+          {isValidNonNegativeInteger(transparentPaddingInputValue) ? (
+            <p className="BoldFontWeight">
+              This step is optional. If you do not understand this step, then
+              just skip it.
+            </p>
+          ) : (
+            <p className="BoldFontWeight">
+              If you do not understand this step, then just enter "0" below.
+            </p>
+          )}
           <input
             className={
               isValidNonNegativeInteger(transparentPaddingInputValue)
@@ -126,6 +136,7 @@ export class App extends Component<{}, State> {
             value={transparentPaddingInputValue}
             onChange={this.onTransparentPaddingInputValueChange}
           />
+          px
         </section>
 
         <section>
