@@ -226,7 +226,16 @@ export class App extends Component<{}, State> {
   }
 
   onImageFileUpload(file: File): void {
-    // TODO
+    file
+      .arrayBuffer()
+      .then((buffer) => loadImageFileFromArrayBuffer(buffer, file.name))
+      .then((imageFile) => {
+        this.setState({
+          uploadedFileName: file.name,
+          originalImageFiles: [imageFile],
+          croppedImageFiles: [],
+        });
+      });
   }
 
   onShouldHideOriginalPreviewsChange(
